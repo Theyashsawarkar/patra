@@ -1,8 +1,8 @@
 name = "patra"
 title = "Docker"
 description = "Docker containers: grouped by compose project, live CPU and memory, logs in the preview; restart, stop, start, shell, logs."
-version = "0.1.1"
-vyom = "0.2"
+version = "0.1.2"
+vyom = "0.2.5"
 icon = ""
 color = "blue"
 requires = ["docker"]
