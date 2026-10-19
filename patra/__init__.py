@@ -34,7 +34,7 @@ class Plugin(Base):
     preview_width = 330
     width = 780
     live = 3
-    hints = [Hint("↵", "logs"), Hint("⌃R", "restart"), Hint("⌃S", "stop/start"), Hint("⌃T", "shell")]
+    hints = [Hint("Enter", "logs"), Hint("Ctrl+R", "restart"), Hint("Ctrl+S", "stop/start"), Hint("Ctrl+T", "shell")]
     empty_text = "No containers"
 
     def __init__(self, vyom, conf):
