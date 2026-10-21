@@ -1,0 +1,8 @@
+# The project website (docs/, GitHub Pages): built by scripts/build-site.py
+name = "patra"
+sanskrit = "पात्र"
+meaning = "vessel"
+tagline = "Docker containers: grouped by compose project, live CPU and memory, logs in the preview; restart, stop, start, shell, logs."
+color = "blue"
+kind = "a Vyom tool"
+logo = "assets/logo.svg"
