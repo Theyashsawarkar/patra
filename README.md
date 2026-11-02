@@ -22,6 +22,11 @@
 
 <!-- No screenshot: docker shows personal data (your own containers). -->
 
+<p align="center">
+  <img alt="patra: containers grouped by compose project with live CPU and memory, and the picked one's details with Restart, Stop and Shell" src="assets/screenshots/patra.png" width="100%">
+</p>
+<p align="center"><sub>Screenshots use made-up demo containers.</sub></p>
+
 > *Patra* (पात्र) is Sanskrit for "vessel": the vessels your apps run in: containers.
 
 patra is docker containers for [Vyom](https://github.com/Theyashsawarkar/vyom): one keyboard-driven panel that opens instantly, with live data, a preview and a key for everything. It runs on any compositor with the layer-shell protocol (sway, Hyprland, river, niri, Wayfire, labwc…). In [Vayu](https://github.com/Theyashsawarkar/vayu), the desktop it was built for, it replaces docker-picker.py.
