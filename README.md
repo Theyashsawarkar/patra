@@ -6,6 +6,15 @@
   </picture>
 </p>
 
+<!-- identity -->
+<p align="center">
+  <b>विद्या ददाति विनयं विनयाद्याति पात्रताम् ।<br>
+  पात्रत्वाद्धनमाप्नोति धनाद्धर्मं ततः सुखम् ॥</b><br>
+  <i>Knowledge gives humility, humility makes one a worthy vessel, and from that come wealth, right action and joy.</i><br>
+  <sub>Hitopadeśa, Prastāvikā 6</sub>
+</p>
+<!-- /identity -->
+
 <p align="center">
   <b>Docker containers: grouped by compose project, live CPU and memory, logs in the preview; restart, stop, start, shell, logs.</b><br>
   Docker containers. A tool for <a href="https://github.com/Theyashsawarkar/vyom">Vyom</a>, keyboard-driven panels for Wayland.
