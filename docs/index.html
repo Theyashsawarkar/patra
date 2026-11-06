@@ -53,7 +53,7 @@ rm -rf ~/.local/share/vyom/plugins/patra &amp;&amp; vyom reload          # unins
 <h2 id="usage"><a class="anchor" href="#usage">#</a>Usage</h2>
 <p>Open it with <code>vyom patra</code> (or your key). Type to search; the footer always shows the keys for what's selected.</p>
 <div class="table"><table><thead><tr><th>Key</th><th>Action</th></tr></thead><tbody><tr><td><code>Enter</code></td><td>Follow the selected container's logs in a terminal</td></tr><tr><td><code>Ctrl+R</code></td><td>Restart the selected container</td></tr><tr><td><code>Ctrl+S</code></td><td>Stop or start the selected container</td></tr><tr><td><code>Ctrl+T</code></td><td>Open a shell in the selected container</td></tr><tr><td><code>Ctrl+Backspace</code></td><td>Remove the selected stopped container</td></tr><tr><td><code>Esc</code></td><td>Close the panel</td></tr></tbody></table></div>
-<p>Every Vyom panel also has <code>Up</code>/<code>Down</code> (or <code>Ctrl+K</code>/<code>Ctrl+J</code>) to move, <code>Page Up</code>/<code>Page Down</code> to jump and <code>Tab</code> to switch to the next tool.</p>
+<p>Every Vyom panel also has <code>Up</code>/<code>Down</code> (or <code>Ctrl+K</code>/<code>Ctrl+J</code>) to move and <code>Page Up</code>/<code>Page Down</code> to jump. Each tool opens from its own key.</p>
 <h2 id="configuration"><a class="anchor" href="#configuration">#</a>Configuration</h2>
 <p>Everything is optional, in <code>~/.config/vyom/config.toml</code> under <code>[plugin.patra]</code>:</p>
 <div class="table"><table><thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead><tbody><tr><td><code>terminal</code></td><td>$TERMINAL, else kitty/foot/alacritty/wezterm</td><td>Terminal for logs and shells</td></tr></tbody></table></div>
