@@ -24,7 +24,7 @@
   <a href="https://github.com/Theyashsawarkar/patra/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Theyashsawarkar/patra/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Theyashsawarkar/patra/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Theyashsawarkar/patra?color=cba6f7&label=release"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-f5e0dc"></a>
-  <a href="https://github.com/Theyashsawarkar/vyom"><img alt="Vyom 0.2.5+" src="https://img.shields.io/badge/vyom-0.2.5%2B-89b4fa"></a>
+  <a href="https://github.com/Theyashsawarkar/vyom"><img alt="Vyom 0.6+" src="https://img.shields.io/badge/vyom-0.6%2B-89b4fa"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-a6e3a1">
   <img alt="Wayland" src="https://img.shields.io/badge/wayland-layer--shell-94e2d5">
 </p>
@@ -53,10 +53,11 @@ patra is docker containers for [Vyom](https://github.com/Theyashsawarkar/vyom): 
 
 ## Features
 
-- Every container, **grouped by compose project**, running ones first, failed ones flagged.
-- **Live CPU and memory** per container, and its ports.
-- The preview shows the **last log lines**, and restart / stop / start / shell buttons.
-- `Enter` follows the logs in a terminal; `Ctrl+T` opens a shell inside the container.
+- **A summary at the top**: how many containers run, how many are unhealthy (red) and how many are stopped.
+- Every container, **grouped by compose project**, each project with a note ("needs you", "all running", "stopped"); **the ones that need you come first**: unhealthy, restarting or failed, in red, with "restarted 3× in 10 min" when Docker's events say so.
+- **Live CPU and memory sparklines** on every running container (the last readings, kept while Vyom runs), with the current numbers.
+- The preview shows the image and ports, and the **last log lines in colour**: ERROR red, WARN yellow, INFO green, times dimmed.
+- Buttons with their keys: **Restart** (`Ctrl+R`), **Shell** (`Ctrl+S`), **Logs** (`Ctrl+L`, or `Enter`), **Stop** in red (`Ctrl+X`; on a stopped one Start); **Remove** a stopped one with `Ctrl+Backspace`, which asks first.
 - Never wakes a stopped Docker daemon (it's often socket-activated): it says it's stopped instead.
 - Keyboard first: every action has a key, shown in the footer; the mouse works too.
 - Never freezes the panel: slow commands run in the background.
@@ -65,7 +66,7 @@ patra is docker containers for [Vyom](https://github.com/Theyashsawarkar/vyom): 
 
 ### Requirements
 
-- [Vyom](https://github.com/Theyashsawarkar/vyom) 0.2.5 or newer (Python 3.11+, PyGObject, GTK 4, [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell), a Nerd Font)
+- [Vyom](https://github.com/Theyashsawarkar/vyom) 0.6 or newer (Python 3.11+, PyGObject, GTK 4, [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell), a Nerd Font)
 - `docker`
 
 ### Install
@@ -96,10 +97,11 @@ Open it with `vyom patra` (or your key). Type to search; the footer always shows
 | Key | Action |
 |---|---|
 | `Enter` | Follow the selected container's logs in a terminal |
+| `Ctrl+L` | Follow the selected container's logs in a terminal (same as Enter) |
 | `Ctrl+R` | Restart the selected container |
-| `Ctrl+S` | Stop or start the selected container |
-| `Ctrl+T` | Open a shell in the selected container |
-| `Ctrl+Backspace` | Remove the selected stopped container |
+| `Ctrl+S` | Open a shell in the selected container |
+| `Ctrl+X` | Stop the selected container, or start a stopped one |
+| `Ctrl+Backspace` | Remove the selected stopped container (press twice: asks first) |
 | `Esc` | Close the panel |
 
 Every Vyom panel also has `Up`/`Down` (or `Ctrl+K`/`Ctrl+J`) to move and `Page Up`/`Page Down` to jump. Each tool opens from its own key.

@@ -2,7 +2,20 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
-## Unreleased
+## v0.2.0 -- 2026-11-07
+
+- **A new look** (Vyom 0.6): a summary at the top (running, unhealthy in red,
+  stopped); the containers that need you (unhealthy, restarting, failed) come
+  first, in red, with "restarted 3× in 10 min" when Docker's events say so;
+  each compose project says how it's doing ("needs you", "all running").
+- **Live CPU and memory sparklines** on every running container.
+- **Logs in colour** in the preview: ERROR red, WARN yellow, INFO green,
+  times dimmed; the image and ports above them.
+- **Keys moved to match the buttons**: `Ctrl+S` opens a shell (was `Ctrl+T`),
+  `Ctrl+X` stops or starts (was `Ctrl+S`), `Ctrl+L` follows the logs.
+- **Remove asks first**: `Ctrl+Backspace` once shows a red note, a second
+  time within 5 seconds removes the container.
+- Needs Vyom 0.6.0.
 
 - Every corner is rounded: the website's callouts.
 - A logo and a shloka at the top of the README and the website: every Vayu tool has them now.
