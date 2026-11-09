@@ -20,16 +20,36 @@ from gi.repository import GLib, Gtk, Pango
 from vyom import Hint, Row, Section, ui, util
 from vyom import Plugin as Base
 
-# keybind: Vyom/docker | Enter | Follow the selected container's logs in a terminal
-# keybind: Vyom/docker | Ctrl+L | Follow the selected container's logs in a terminal (same as Enter)
-# keybind: Vyom/docker | Ctrl+R | Restart the selected container
-# keybind: Vyom/docker | Ctrl+S | Open a shell in the selected container
-# keybind: Vyom/docker | Ctrl+X | Stop the selected container, or start a stopped one
-# keybind: Vyom/docker | Ctrl+Backspace | Remove the selected stopped container (press twice: asks first)
+from . import vim
+
+# KEYBINDS (generated from patra/vim.py by scripts/keybinds.py; don't edit by hand)
+# keybind: Vyom/docker:normal | Enter | Follow the selected container's logs in a terminal
+# keybind: Vyom/docker:normal | o | Open a shell in the selected container
+# keybind: Vyom/docker:normal | x | Stop the selected container, or start a stopped one
+# keybind: Vyom/docker:normal | R | Restart the selected container
+# keybind: Vyom/docker:normal | d d | Remove the selected stopped container (y confirms)
+# keybind: Vyom/docker:normal | y y | Copy the container's name
+# keybind: Vyom/docker:normal | r | Reload the list now
+# keybind: Vyom/docker leader:normal | Space c r | Restart the selected container
+# keybind: Vyom/docker leader:normal | Space c s | Stop the selected container, or start a stopped one
+# keybind: Vyom/docker leader:normal | Space c l | Follow the selected container's logs in a terminal
+# keybind: Vyom/docker leader:normal | Space c h | Open a shell in the selected container
+# keybind: Vyom/docker leader:normal | Space o t | Open a shell in the selected container, in a terminal
+# keybind: Vyom/docker leader:normal | Space y y | Copy the container's name
+# keybind: Vyom/docker leader:normal | Space y i | Copy the container's ID
+# keybind: Vyom/docker leader:normal | Space y p | Copy the container's ports
+# keybind: Vyom/docker leader:normal | Space f r | Show only running containers (again: show all)
+# keybind: Vyom/docker leader:normal | Space f s | Show only stopped containers (again: show all)
+# keybind: Vyom/docker leader:normal | Space f t | Show only the ones that need you (again: show all)
+# keybind: Vyom/docker leader:normal | Space f c | Clear the filter: show every container
+# keybind: Vyom/docker leader:normal | Space s c | Sort the containers by CPU (busiest first; again: the usual order)
+# keybind: Vyom/docker leader:normal | Space s m | Sort the containers by memory (biggest first; again: the usual order)
+# keybind: Vyom/docker leader:normal | Space s n | Sort the containers by name (A to Z; again: the usual order)
+# keybind: Vyom/docker leader:normal | Space d d | Remove the selected stopped container (y confirms)
+# END KEYBINDS
 
 HISTORY = 24          # stats samples kept per container while Vyom runs (~1 a refresh)
 EVENTS_EVERY = 20     # seconds between reads of the last 10 minutes' restarts
-ARM_SECONDS = 5       # a second Ctrl+Backspace within this removes
 
 # What a container's state means: (word, colour, icon). Red needs you.
 STATES = {"unhealthy": ("Unhealthy", "red", "\U000f0028"), "restarting": ("Restarting", "red", "\U000f0450"),
@@ -127,7 +147,11 @@ class Plugin(Base):
     preview = True
     preview_width = 340
     live = 3
-    hints = [Hint("Enter", "logs"), Hint("Ctrl+R", "restart"), Hint("Ctrl+S", "shell"), Hint("Ctrl+X", "stop/start")]
+    hints = [Hint("Enter", "logs"), Hint("x", "stop/start"), Hint("R", "restart"), Hint("o", "shell"),
+             Hint("d d", "remove")]
+    modal = True                # vim keys (Vyom 0.7): NORMAL first, / filters
+    start_mode = "normal"
+    key_groups = vim.GROUPS
     empty_text = "No containers"
 
     def __init__(self, vyom, conf):
@@ -138,14 +162,14 @@ class Plugin(Base):
         self.restarts = {}        # id12 -> deaths in the last 10 minutes
         self.events_at = 0.0
         self.counts = None        # (running, trouble, stopped) for the strip
-        self.armed = None         # (id, time): Ctrl+Backspace once, a second time removes
+        self.only = ""            # Space f: "", "running", "stopped" or "trouble"
+        self.sort_by = ""         # Space s: "", "cpu", "mem" or "name"
         self.colors = {"red": "#f38ba8", "yellow": "#f9e2af", "green": "#a6e3a1", "dim": "#6c7086"}
         self.terminal = self.conf.get("terminal") or os.environ.get("TERMINAL") or \
             next((t for t in ("kitty", "foot", "alacritty", "wezterm") if shutil.which(t)), "xterm")
 
     def opened(self, args):
         super().opened(args)
-        self.armed = None
         self.colors = {"red": theme_hex("red", "#f38ba8"), "yellow": theme_hex("yellow", "#f9e2af"),
                        "green": theme_hex("green", "#a6e3a1"), "dim": theme_hex("gray", "#7f849c")}
 
@@ -220,10 +244,19 @@ class Plugin(Base):
         for c in conts:
             if q and util.fuzzy(q, c["Names"] + " " + c["Image"]) is None:
                 continue
+            if self.only and not self.shown(c):
+                continue
             labels = dict(kv.split("=", 1) for kv in c.get("Labels", "").split(",") if "=" in kv)
             groups.setdefault(labels.get("com.docker.compose.project", ""), []).append(c)
 
-        def order(c):   # the ones that need you, then running, then stopped
+        def order(c):   # the ones that need you, then running, then stopped (or Space s's order)
+            st = self.stats.get(c["ID"][:12], {})
+            if self.sort_by == "cpu":
+                return (-pct(st.get("CPUPerc")), c["Names"])
+            if self.sort_by == "mem":
+                return (-to_bytes(st.get("MemUsage", "").split(" / ")[0]), c["Names"])
+            if self.sort_by == "name":
+                return (c["Names"].lower(),)
             return (0 if c["health"] in TROUBLE else 1 if c["State"] == "running" else 2, c["Names"])
 
         def trouble(p):
@@ -234,6 +267,9 @@ class Plugin(Base):
             up = sum(c["State"] == "running" for c in items)
             note = "needs you" if trouble(proj) else "all running" if up == len(items) else \
                 "stopped" if up == 0 else f"{up} of {len(items)} running"
+            if self.only or self.sort_by:
+                note += " · " + " · ".join(x for x in (self.only and f"only {self.only}",
+                                                      self.sort_by and f"by {self.sort_by}") if x)
             rows.append(Section(f"{proj} · compose" if proj else "Containers", len(items), note))
             rows += [self.row(c) for c in items]
         return rows
@@ -361,18 +397,15 @@ class Plugin(Base):
                     logs.set_label("(no logs)")
         self.background(lambda: util.run(f"docker logs --timestamps --tail 14 {c['ID']} 2>&1", timeout=6), got)
         running = c["State"] == "running"
-        if self.armed and self.armed[0] == c["ID"] and time.time() - self.armed[1] < ARM_SECONDS:
-            parts.append(ui.notice(f"Remove {c['Names']}?", "Ctrl+Backspace again removes it. This can't be undone.",
-                                   "red"))
         if running:
-            btns = [("Restart", lambda: self.do(c, "restart"), "primary", "", "Ctrl+R"),
-                    ("Shell", lambda: self.shell(c), "", "", "Ctrl+S"),
-                    ("Logs", lambda: self.logs(c), "", "", "Ctrl+L"),
-                    ("Stop", lambda: self.do(c, "stop"), "danger", "", "Ctrl+X")]
+            btns = [("Restart", lambda: self.do(c, "restart"), "primary", "", "R"),
+                    ("Shell", lambda: self.shell(c), "", "", "o"),
+                    ("Logs", lambda: self.logs(c), "", "", "Enter"),
+                    ("Stop", lambda: self.do(c, "stop"), "danger", "", "x")]
         else:
-            btns = [("Start", lambda: self.do(c, "start"), "ok", "", "Ctrl+X"),
-                    ("Logs", lambda: self.logs(c), "", "", "Ctrl+L"),
-                    ("Remove", lambda: self.remove(c), "danger", "", "Ctrl+⌫")]
+            btns = [("Start", lambda: self.do(c, "start"), "ok", "", "x"),
+                    ("Logs", lambda: self.logs(c), "", "", "Enter"),
+                    ("Remove", lambda: self.remove(c), "danger", "", "d d")]
         flow = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=8, row_spacing=8,
                            max_children_per_line=4, homogeneous=False)
         flow.add_css_class("chips")
@@ -389,19 +422,11 @@ class Plugin(Base):
                                                    else f"{verb} failed"), self.refresh()))
 
     def remove(self, c):
-        """Asks first: the first press arms it (a red note in the preview),
-        a second within a few seconds removes."""
+        """Asks first (y removes, any other key keeps it): it can't be undone."""
         if c["State"] == "running":
-            self.set_status("stop it first (Ctrl+X)")
+            self.set_status("stop it first (x)", "bad")
             return
-        if self.armed and self.armed[0] == c["ID"] and time.time() - self.armed[1] < ARM_SECONDS:
-            self.armed = None
-            self.do(c, "rm")
-            return
-        self.armed = (c["ID"], time.time())
-        self.set_status(f"Ctrl+Backspace again removes {c['Names']}")
-        if self.panel:
-            self.panel.update_preview_soon()
+        self.confirm(f"Remove {c['Names']}? It can't be undone.", lambda: self.do(c, "rm"))
 
     def term(self, cmd, title):
         if os.path.basename(self.terminal) == "kitty":
@@ -411,7 +436,7 @@ class Plugin(Base):
 
     def shell(self, c):
         if c["State"] != "running":
-            self.set_status("start it first (Ctrl+X)")
+            self.set_status("start it first (x)", "bad")
             return
         self.term(["docker", "exec", "-it", c["ID"], "sh", "-c", "command -v bash >/dev/null && exec bash || exec sh"],
                   f"{c['Names']} shell")
@@ -431,20 +456,64 @@ class Plugin(Base):
             self.logs(c)
         return False
 
-    def key(self, name, row, mods):
-        if mods != {"ctrl"} or row is None or (row.data or {}).get("kind") != "c":
-            return False
-        c = row.data
-        if name == "r":
-            self.do(c, "restart")
-        elif name == "s":
-            self.shell(c)
-        elif name == "l":
-            self.logs(c)
-        elif name == "x":
-            self.do(c, "stop" if c["State"] == "running" else "start")
-        elif name == "BackSpace":
-            self.remove(c)
-        else:
-            return False
+    # ------------------------------------------------------------ vim keys
+    def keys(self, tab):
+        return vim.keys(tab)
+
+    def selected(self):
+        """The selected container, or None (with a word why)."""
+        row = self.panel.selected_row() if self.panel else None
+        c = (row.data or {}) if row is not None else {}
+        if c.get("kind") != "c":
+            self.set_status("no container selected", "bad")
+            return None
+        return c
+
+    def shown(self, c):
+        if self.only == "running":
+            return c["State"] == "running"
+        if self.only == "stopped":
+            return c["State"] != "running"
+        if self.only == "trouble":
+            return c["health"] in TROUBLE
         return True
+
+    def v_logs(self, _n, _a):
+        if (c := self.selected()):
+            self.logs(c)
+
+    def v_shell(self, _n, _a):
+        if (c := self.selected()):
+            self.shell(c)
+
+    def v_toggle(self, _n, _a):
+        if (c := self.selected()):
+            self.do(c, "stop" if c["State"] == "running" else "start")
+
+    def v_restart(self, _n, _a):
+        if (c := self.selected()):
+            self.do(c, "restart")
+
+    def v_remove(self, _n, _a):
+        if (c := self.selected()):
+            self.remove(c)
+
+    def v_copy(self, _n, what):
+        if not (c := self.selected()):
+            return
+        text = {"id": c["ID"], "ports": c.get("Ports", "")}.get(what, c["Names"])
+        if not text:
+            self.set_status("nothing to copy", "bad")
+            return
+        util.copy(text)
+        self.set_status(f"copied {text[:40]}", "ok")
+
+    def v_only(self, _n, what):
+        self.only = "" if what == self.only else what
+        self.set_status(f"only {self.only}" if self.only else "every container", "ok")
+        self.refresh()
+
+    def v_sort(self, _n, what):
+        self.sort_by = "" if what == self.sort_by else what
+        self.set_status(f"sorted by {self.sort_by}" if self.sort_by else "the usual order", "ok")
+        self.refresh()

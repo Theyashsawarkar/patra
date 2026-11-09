@@ -2,6 +2,27 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.3.0 -- 2026-11-09
+
+- `Space u p` (show or hide the preview) now comes from Vyom core, which also remembers it per tool; the tool's own copy is gone.
+- **Vim keys** (Vyom 0.7): patra opens in NORMAL mode, where letters are keys
+  and typing changes nothing; `/` (or `i`) types a filter, `Esc` goes back.
+  `Space` is the leader, with a which-key strip; `?` lists every key and
+  `Space Space` is a palette of every action.
+- **New keys**: `x` stops or starts, `R` restarts, `o` opens a shell, `yy`
+  copies the name, `r` refreshes; `Space c` acts on the container,
+  `Space y i` / `y p` copy its ID / ports, `Space f r` / `f s` / `f t` show only
+  running / stopped / the ones that need you, `Space s c` / `s m` / `s n` sort
+  by CPU / memory / name, `Space u p` hides the preview.
+- **Remove asks with one question**: `dd` (or `Space d d`) asks "Remove …?",
+  `y` removes and any other key keeps it, instead of pressing twice.
+- **Typing is safe**: `Ctrl+Backspace` deletes a word in the filter again
+  (it removed a container); it now says remove moved to `dd`, and `Ctrl+L`
+  says logs are on `Enter`. `Ctrl+R`, `Ctrl+S` and `Ctrl+X` still work.
+- Keys are data (`patra/vim.py`); `scripts/keybinds.py` writes the
+  `# keybind:` lines and the README table from it (`--check` in CI).
+- Needs Vyom 0.7.0.
+
 ## v0.2.0 -- 2026-11-07
 
 - **A new look** (Vyom 0.6): a summary at the top (running, unhealthy in red,
