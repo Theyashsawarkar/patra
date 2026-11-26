@@ -32,7 +32,7 @@
 <!-- No screenshot: docker shows personal data (your own containers). -->
 
 <p align="center">
-  <img alt="patra: containers grouped by compose project with live CPU and memory, and the picked one's details with Restart, Stop and Shell" src="assets/screenshots/patra.png" width="100%">
+  <img alt="patra: containers grouped by compose project with live CPU and memory, and the picked one's details with Restart, Stop and Shell" src="assets/screenshots/patra.webp" width="100%">
 </p>
 <p align="center"><sub>Screenshots use made-up demo containers.</sub></p>
 
