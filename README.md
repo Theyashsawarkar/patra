@@ -55,7 +55,7 @@ patra is docker containers for [Vyom](https://github.com/Theyashsawarkar/vyom): 
 
 - **A summary at the top**: how many containers run, how many are unhealthy (red) and how many are stopped.
 - Every container, **grouped by compose project**, each project with a note ("needs you", "all running", "stopped"); **the ones that need you come first**: unhealthy, restarting or failed, in red, with "restarted 3× in 10 min" when Docker's events say so.
-- **Live CPU and memory sparklines** on every running container (the last readings, kept while Vyom runs), with the current numbers.
+- **Live CPU and memory sparklines** on every running container (the last readings, kept while Vyom runs, so a reopened panel shows them at once), with the current numbers. Docker is read through its socket (the Engine API) in Vyom's process, not by running `docker`, and only while the panel is open.
 - The preview shows the image and ports, and the **last log lines in colour**: ERROR red, WARN yellow, INFO green, times dimmed.
 - Buttons with their keys: **Restart** (`R`), **Shell** (`o`), **Logs** (`Enter`), **Stop** in red (`x`; on a stopped one Start); **Remove** a stopped one with `dd`, which asks first (`y` removes).
 - **Vim keys** (Vyom 0.7): NORMAL and INSERT modes, counts, `Space` as the leader with a which-key strip, `?` for every key and `Space Space` for a palette of every action. Filter (`Space f`: running, stopped, the ones that need you) and sort (`Space s`: CPU, memory, name).

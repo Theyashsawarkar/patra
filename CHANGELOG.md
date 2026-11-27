@@ -4,6 +4,8 @@ Newest first. Releases are tags (`vX.Y.Z`).
 
 ## Unreleased
 
+- **Reads Docker through its socket, in this process, instead of running `docker`** (`patra/engine.py`, the Engine API): the list in about 40 ms instead of `docker ps`'s 0.9-1 s, the CPU and memory as one-shot readings (2-3 ms a container; CPU from this reading and the one before) instead of `docker stats --no-stream` (a second each time), restarts from the events API, whether Docker runs from systemd over D-Bus (never starting a socket-activated daemon). While the panel is open (every 3 s) this took about 39% of a core across dockerd and the CLI with 3 containers running; now about 0.1%. Without access to the socket it runs the commands as before.
+- The sparklines and the last CPU and memory figures are kept while Vyom runs, so a reopened panel shows them at once and the next reading follows in 3 s. Nothing is read while the panel is closed (measured: following stats all along would cost dockerd 0.2% of a core per running container, polling every 10 s almost nothing but a wakeup every 10 s per container for a panel that is rarely open).
 - New screenshots in the Spatial look, taken with made-up demo data (WebP, sharp on high-density screens).
 - The website, closer to Vayu's own: the tool's screenshot blurred behind the page, a centred hero with the logo and the verse, the page you're on as the white pill, glass "On this page" and footer panels, releases as cards. No glow behind the logo, no coloured line beside the verse.
 - The website has Vayu's Spatial look: graphite glass, a floating navigation bar, near-white for links and the main button, and the tool's own colour only as its signature (the logo's glow, the shloka's line, the release dots). No more all-caps labels.

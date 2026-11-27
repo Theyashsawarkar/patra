@@ -20,7 +20,7 @@ from gi.repository import GLib, Gtk, Pango
 from vyom import Hint, Row, Section, ui, util
 from vyom import Plugin as Base
 
-from . import vim
+from . import engine, vim
 
 # KEYBINDS (generated from patra/vim.py by scripts/keybinds.py; don't edit by hand)
 # keybind: Vyom/docker:normal | Enter | Follow the selected container's logs in a terminal
@@ -60,6 +60,11 @@ TROUBLE = {"unhealthy", "restarting", "failed"}
 
 
 def daemon_up():
+    """Without starting a command: systemd over D-Bus (engine.up())."""
+    try:
+        return engine.up()
+    except Exception:   # noqa: BLE001  (then the old way)
+        pass
     if shutil.which("systemctl"):
         return util.run(["systemctl", "is-active", "--quiet", "docker.service"])[0] == 0
     return util.run(["docker", "info", "--format", "x"], timeout=3)[0] == 0
@@ -93,6 +98,11 @@ def short_bytes(n):
             v = n / size
             return f"{v:.1f}{unit}" if v < 10 else f"{v:.0f}{unit}"
     return f"{n:.0f}B"
+
+
+def mem_text(n):
+    """Bytes as `docker stats` writes them: "12.3MiB", "512B"."""
+    return f"{short_bytes(n)}iB" if n >= 1024 else f"{n:.0f}B"
 
 
 def pct(text):
@@ -158,6 +168,8 @@ class Plugin(Base):
         super().__init__(vyom, conf)
         self.stats = {}
         self.stats_busy = False
+        self.conts = None         # the list from the Engine API (None: it can't be asked)
+        self.engine_stats = engine.Stats()
         self.hist = {}            # id12 -> deque of (cpu %, memory bytes)
         self.restarts = {}        # id12 -> deaths in the last 10 minutes
         self.events_at = 0.0
@@ -183,14 +195,16 @@ class Plugin(Base):
 
         def go():
             try:
-                code, out = util.run(["docker", "stats", "--no-stream", "--format", "{{json .}}"], timeout=10)
-                st = {}
-                for line in out.splitlines() if code == 0 else []:
-                    try:
-                        j = json.loads(line)
-                        st[j["ID"][:12]] = j
-                    except (ValueError, KeyError):
-                        pass
+                st = self.api_stats()
+                if st is None:      # no access to Docker's socket: the command
+                    code, out = util.run(["docker", "stats", "--no-stream", "--format", "{{json .}}"], timeout=10)
+                    st = {}
+                    for line in out.splitlines() if code == 0 else []:
+                        try:
+                            j = json.loads(line)
+                            st[j["ID"][:12]] = j
+                        except (ValueError, KeyError):
+                            pass
                 for cid, j in st.items():
                     h = self.hist.setdefault(cid, collections.deque(maxlen=HISTORY))
                     h.append((pct(j.get("CPUPerc")), to_bytes(j.get("MemUsage", "").split(" / ")[0])))
@@ -205,9 +219,24 @@ class Plugin(Base):
                 self.stats_busy = False
         threading.Thread(target=go, daemon=True).start()
 
+    def api_stats(self):
+        """The running containers' stats from the Engine API (engine.Stats:
+        one-shot readings, no command), shaped like `docker stats`' JSON;
+        None when the socket can't be used."""
+        running = [c["ID"] for c in (self.conts or []) if c.get("State") == "running"]
+        if self.conts is None:
+            return None
+        raw = self.engine_stats.read(running)
+        return {cid: {"ID": cid, "CPUPerc": f"{v['cpu']:.2f}%",
+                      "MemUsage": f"{mem_text(v['mem'])} / {mem_text(v['limit'])}"}
+                for cid, v in raw.items()}
+
     def read_restarts(self):
         """How often each container died in the last 10 minutes (a
         restart loop), from docker events."""
+        n = engine.restarts(10) if self.conts is not None else None
+        if n is not None:
+            return n
         code, out = util.run(["docker", "events", "--since", "10m", "--until", str(int(time.time())),
                               "--filter", "type=container", "--filter", "event=die", "--format", "{{json .}}"],
                              timeout=6)
@@ -227,16 +256,22 @@ class Plugin(Base):
             self.counts = None
             return [Row("Docker isn't running", "Enter starts it (docker.service)", icon="", color="gray",
                         data={"kind": "start"})]
+        # the list from Docker's socket in this process (a few ms), else `docker ps`
+        api = engine.containers()
+        self.conts = api
         self.update_stats()
-        code, out = util.run(["docker", "ps", "-a", "--format", "{{json .}}"], timeout=8)
         conts = []
-        for line in out.splitlines() if code == 0 else []:
-            try:
-                c = json.loads(line)
-            except ValueError:
-                continue
+        if api is not None:
+            conts = api
+        else:
+            code, out = util.run(["docker", "ps", "-a", "--format", "{{json .}}"], timeout=8)
+            for line in out.splitlines() if code == 0 else []:
+                try:
+                    conts.append(json.loads(line))
+                except ValueError:
+                    continue
+        for c in conts:
             c["health"] = health(c)
-            conts.append(c)
         self.counts = (sum(c["State"] == "running" and c["health"] not in TROUBLE for c in conts),
                        sum(c["health"] in TROUBLE for c in conts),
                        sum(c["health"] in ("stopped", "paused") for c in conts))
