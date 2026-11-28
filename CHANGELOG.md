@@ -2,6 +2,10 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## Unreleased
+
+- Website: pranali joins the family list in the footer; the site builder passes ruff.
+
 ## v0.4.0 -- 2026-11-27
 
 - **Reads Docker through its socket, in this process, instead of running `docker`** (`patra/engine.py`, the Engine API): the list in about 40 ms instead of `docker ps`'s 0.9-1 s, the CPU and memory as one-shot readings (2-3 ms a container; CPU from this reading and the one before) instead of `docker stats --no-stream` (a second each time), restarts from the events API, whether Docker runs from systemd over D-Bus (never starting a socket-activated daemon). While the panel is open (every 3 s) this took about 39% of a core across dockerd and the CLI with 3 containers running; now about 0.1%. Without access to the socket it runs the commands as before.
