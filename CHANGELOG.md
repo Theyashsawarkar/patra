@@ -4,6 +4,14 @@ Newest first. Releases are tags (`vX.Y.Z`).
 
 ## Unreleased
 
+- **The right side no longer flickers.** Every 3 s Vyom's live refresh (`live = 3`) ran the search again, and the panel tore the preview down and built it anew: the logs went back to "loading logs…" for a moment (a `docker logs` command each time) and the buttons under them jumped up and back, and rows whose uptime had changed were rebuilt too. patra now reads on its own timer and changes on screen only what changed: the same rows, preview and sparklines, updated in place (a label is set only when its text changed, a sparkline redrawn only when its values did), figures in digits of one width. Measured with frames of the preview captured at ~48 fps over four refreshes: before, about 40,600 pixels changed twice per refresh; now 100-230 pixels per refresh, only the CPU and memory figures. The list is rebuilt only when a container comes, goes or changes state, and then the selected container stays selected (before, the selection jumped to the top when its uptime text changed, e.g. in a container's first minute).
+- The sparklines on the rows move again: they were drawn once when a row was built and never updated while the list stayed the same, so they showed "…" or old figures.
+- The preview's logs and the actions (start, stop, restart, remove) go through Docker's socket too, not the `docker` command: no Go program started every 3 s for the logs. The list, the stats and the logs of one reading share one kept-alive connection.
+- The first CPU figure comes a second after opening, not after Docker's own second-long wait per container one after another (40 containers: about 40 s before every row had one).
+- With many containers, the rows out of sight are read every fourth reading (12 s) instead of every 3 s (one request per container each time: Docker has no call for several at once), unless the list is sorted by CPU or memory. 40 containers, 32 running: 5.4 requests a second instead of 11.4.
+- After an action the list shows the new state at once (without the socket too, where `docker stats` takes a second or two).
+- Nothing is read while the panel is closed or parked on another workspace (Vyom 0.13), and a reading that lands after it closed is dropped. A `DOCKER_HOST` socket that isn't docker.service's is no longer pinged before each reading, and a socket nobody answers on reads as Docker not running.
+- Tests: `tests/fake_engine.py`, a fake Engine API on a private socket (made-up containers, stats, logs, events, actions, a stopped daemon), and tests of the engine and the rows against it.
 - Website: pranali joins the family list in the footer; the site builder passes ruff.
 
 ## v0.4.0 -- 2026-11-27

@@ -5,3 +5,5 @@
   min-width: 46px; }
 .plugin-patra .patra-strip { padding: 2px 4px; }
 .plugin-patra .patra-strip-note { color: @red; font-size: 12px; }
+/* figures that change every reading: digits of one width, so nothing beside them moves */
+.plugin-patra .patra-num, .plugin-patra .patra-spark-val { font-feature-settings: "tnum"; }
