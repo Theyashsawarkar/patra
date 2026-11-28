@@ -2,7 +2,7 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
-## Unreleased
+## v0.4.1 -- 2026-11-28
 
 - **The right side no longer flickers.** Every 3 s Vyom's live refresh (`live = 3`) ran the search again, and the panel tore the preview down and built it anew: the logs went back to "loading logs…" for a moment (a `docker logs` command each time) and the buttons under them jumped up and back, and rows whose uptime had changed were rebuilt too. patra now reads on its own timer and changes on screen only what changed: the same rows, preview and sparklines, updated in place (a label is set only when its text changed, a sparkline redrawn only when its values did), figures in digits of one width. Measured with frames of the preview captured at ~48 fps over four refreshes: before, about 40,600 pixels changed twice per refresh; now 100-230 pixels per refresh, only the CPU and memory figures. The list is rebuilt only when a container comes, goes or changes state, and then the selected container stays selected (before, the selection jumped to the top when its uptime text changed, e.g. in a container's first minute).
 - The sparklines on the rows move again: they were drawn once when a row was built and never updated while the list stayed the same, so they showed "…" or old figures.
